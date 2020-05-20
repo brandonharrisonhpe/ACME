@@ -1,43 +1,82 @@
 provider "aws" {
-  region = "us-west-1"
+  region = var.aws_region
 }
 
 data "aws_availability_zones" "azs" {
-  provider = aws
   state = "available"
 }
 
+resource "random_id" "project_name" {
+  byte_length = 3
+}
+
 module "vpc" {
- source = "terraform-aws-modules/vpc/aws"
+  source = "terraform-aws-modules/vpc/aws"
 
-  name = "TFE-vpc"
-  cidr = "10.0.0.0/16"
+  name = "vpc"
+  cidr = "192.168.0.0/16"
 
-  azs             = data.aws_availability_zones.azs.names
-  public_subnets  = ["10.0.101.0/24"]
-  private_subnets  = ["10.0.102.0/24", "10.0.103.0/24"]
+  azs              = data.aws_availability_zones.azs.names
+  private_subnets  = ["192.168.1.0/24", "192.168.2.0/24"]
+  public_subnets   = ["192.168.101.0/24", "192.168.102.0/24"]
+  database_subnets = ["192.168.201.0/24", "192.168.202.0/24"]
 
-  tags = {
-    Environment = "Test"
-    Tool = "Terraform"
+  enable_nat_gateway = true
+}
+
+resource "tls_private_key" "aws_ssh_key" {
+  algorithm = "RSA"
+  rsa_bits  = 2048
+}
+
+resource "aws_key_pair" "aws_ssh_key" {
+  key_name   = "${random_id.project_name.hex}-ssh-key"
+  public_key = tls_private_key.aws_ssh_key.public_key_openssh
+}
+
+resource "local_file" "private_key" {
+  content  = tls_private_key.aws_ssh_key.private_key_pem
+  filename = "${path.module}/private.pem"
+}
+
+resource "tls_self_signed_cert" "example" {
+  key_algorithm   = "RSA"
+  private_key_pem = tls_private_key.aws_ssh_key.private_key_pem
+
+  subject {
+    common_name  = module.tfe.tfe_alb_dns_name
+    organization = "ACME Examples, Inc"
   }
+  validity_period_hours = 12
+
+  allowed_uses = [
+    "key_encipherment",
+    "digital_signature",
+    "server_auth",
+  ]
+}
+
+resource "aws_acm_certificate" "cert" {
+  private_key      = tls_private_key.aws_ssh_key.private_key_pem
+  certificate_body = tls_self_signed_cert.example.cert_pem
 }
 
 module "tfe" {
   source = "git::git@github.com:hashicorp/terraform-chip-tfe-is-terraform-aws-ptfe-v4-quick-install.git"
 
-  common_tags                = {
+  common_tags = {
     Environment = "Test"
     Tool        = "Terraform"
   }
-  friendly_name_prefix       = var.friendly_name_prefix
-  tfe_hostname               = var.tfe_hostname
-  tfe_license_file_path      = var.tfe_license_file_path
-  vpc_id                     = module.vpc.vpc_id
-  alb_subnet_ids             = [module.vpc.public_subnets[0]]
-  ec2_subnet_ids             = [module.vpc.private_subnets[0]]
-  rds_subnet_ids             = [module.vpc.private_subnets[1]]
-  route53_hosted_zone_name   = var.route53_hosted_zone_name
+  friendly_name_prefix  = var.friendly_name_prefix
+  tfe_license_file_path = var.tfe_license_file_path
+  vpc_id                = module.vpc.vpc_id
+  tfe_hostname          = module.tfe.tfe_alb_dns_name
+  alb_subnet_ids        = module.vpc.public_subnets
+  ec2_subnet_ids        = module.vpc.private_subnets
+  rds_subnet_ids        = module.vpc.database_subnets
+  tls_certificate_arn   = aws_acm_certificate.cert.id
+  tfe_initial_admin_pw  = "SomethingSecure!"
 }
 
 output "tfe_url" {
@@ -46,5 +85,9 @@ output "tfe_url" {
 
 output "tfe_admin_console_url" {
   value = module.tfe.tfe_admin_console_url
+}
+
+output "alb_dns_name" {
+  value = module.tfe.tfe_alb_dns_name
 }
 

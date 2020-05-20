@@ -1,6 +1,11 @@
 ################################################
 # Common
 ################################################
+variable "aws_region" {
+  type        = string
+  description = "The aws region for deployent"
+}
+
 variable "friendly_name_prefix" {
   type        = string
   description = "String value for freindly name prefix for AWS resource names and tags"
@@ -145,3 +150,19 @@ variable "rds_instance_size" {
   description = "Instance size for RDS"
   default     = "db.m4.large"
 }
+
+################################################
+# Certificate
+################################################
+
+variable "cname" {
+  type        = string
+  description = "The CNAME for the certificate"
+}
+
+variable "organization" {
+  type        = string
+  description = "The organization name that is provisioning the certification"
+}
+
+
