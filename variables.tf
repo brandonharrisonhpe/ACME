@@ -151,18 +151,3 @@ variable "rds_instance_size" {
   default     = "db.m4.large"
 }
 
-################################################
-# Certificate
-################################################
-
-variable "cname" {
-  type        = string
-  description = "The CNAME for the certificate"
-}
-
-variable "organization" {
-  type        = string
-  description = "The organization name that is provisioning the certification"
-}
-
-

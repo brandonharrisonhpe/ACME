@@ -1,6 +1,4 @@
 aws_region               = "us-west-1"
-cname                    = "bhacme.com"
-organization             = "ACME Examples, Inc."
 friendly_name_prefix     = "tfe"
 tfe_hostname             = "bhacmecorp.com"
 tfe_license_file_path    = "./terraform-chip.rli"

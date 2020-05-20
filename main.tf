@@ -2,12 +2,12 @@ provider "aws" {
   region = var.aws_region
 }
 
-data "aws_availability_zones" "azs" {
-  state = "available"
-}
-
 resource "random_id" "project_name" {
   byte_length = 3
+}
+
+data "aws_availability_zones" "azs" {
+  state = "available"
 }
 
 module "vpc" {
@@ -16,9 +16,10 @@ module "vpc" {
   name = "vpc"
   cidr = "192.168.0.0/16"
 
-  azs              = data.aws_availability_zones.azs.names
+  azs             = [data.aws_availability_zones.azs.names[0], data.aws_availability_zones.azs.names[1]]
+
   private_subnets  = ["192.168.1.0/24", "192.168.2.0/24"]
-  public_subnets   = ["192.168.101.0/24", "192.168.102.0/24"]
+  public_subnets  = ["192.168.101.0/24", "192.168.102.0/24"]
   database_subnets = ["192.168.201.0/24", "192.168.202.0/24"]
 
   enable_nat_gateway = true
@@ -35,8 +36,8 @@ resource "aws_key_pair" "aws_ssh_key" {
 }
 
 resource "local_file" "private_key" {
-  content  = tls_private_key.aws_ssh_key.private_key_pem
-  filename = "${path.module}/private.pem"
+    content     = tls_private_key.aws_ssh_key.private_key_pem
+    filename = "${path.module}/private.pem"
 }
 
 resource "tls_self_signed_cert" "example" {
@@ -47,6 +48,7 @@ resource "tls_self_signed_cert" "example" {
     common_name  = module.tfe.tfe_alb_dns_name
     organization = "ACME Examples, Inc"
   }
+
   validity_period_hours = 12
 
   allowed_uses = [
@@ -64,19 +66,15 @@ resource "aws_acm_certificate" "cert" {
 module "tfe" {
   source = "git::git@github.com:hashicorp/terraform-chip-tfe-is-terraform-aws-ptfe-v4-quick-install.git"
 
-  common_tags = {
-    Environment = "Test"
-    Tool        = "Terraform"
-  }
-  friendly_name_prefix  = var.friendly_name_prefix
-  tfe_license_file_path = var.tfe_license_file_path
-  vpc_id                = module.vpc.vpc_id
-  tfe_hostname          = module.tfe.tfe_alb_dns_name
-  alb_subnet_ids        = module.vpc.public_subnets
-  ec2_subnet_ids        = module.vpc.private_subnets
-  rds_subnet_ids        = module.vpc.database_subnets
-  tls_certificate_arn   = aws_acm_certificate.cert.id
-  tfe_initial_admin_pw  = "SomethingSecure!"
+  friendly_name_prefix       = var.friendly_name_prefix
+  tfe_hostname               = module.tfe.tfe_alb_dns_name
+  tfe_license_file_path      = "terraform-chip.rli"
+  vpc_id                     = module.vpc.vpc_id
+  alb_subnet_ids             = module.vpc.public_subnets
+  ec2_subnet_ids             = module.vpc.private_subnets
+  rds_subnet_ids             = module.vpc.database_subnets
+  tls_certificate_arn        = aws_acm_certificate.cert.id
+  tfe_initial_admin_pw       = "SomethingSecure!"
 }
 
 output "tfe_url" {
@@ -90,4 +88,3 @@ output "tfe_admin_console_url" {
 output "alb_dns_name" {
   value = module.tfe.tfe_alb_dns_name
 }
-
