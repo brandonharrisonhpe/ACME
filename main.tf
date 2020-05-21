@@ -77,6 +77,13 @@ module "tfe" {
   tfe_initial_admin_pw       = "SomethingSecure!"
 }
 
+module "drupal" {
+  source = "./modules/drupal"
+
+  primary_region = "us-west-1"
+  replica_region = "eu-central-1"
+}
+
 output "tfe_url" {
   value = module.tfe.tfe_url
 }

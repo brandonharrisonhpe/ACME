@@ -1,3 +1,5 @@
 *.rli
 .terraform/
 .terraform.tfstate.lock.info
+*.pem
+*.tfstate*
