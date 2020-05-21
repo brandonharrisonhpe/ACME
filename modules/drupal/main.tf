@@ -57,7 +57,7 @@ resource "aws_vpc_peering_connection" "peer" {
   provider      = aws.primary_region
   vpc_id        = module.primary-vpc.vpc_id
   peer_vpc_id   = module.replica-vpc.vpc_id
-  peer_region   = var.primary_region
+  peer_region   = var.replica_region
   auto_accept   = false
 }
 
@@ -128,16 +128,4 @@ resource "aws_route" "replica-vpc" {
   destination_cidr_block = element(element(local.replica_routes, count.index), 1)
   vpc_peering_connection_id = aws_vpc_peering_connection.peer.id
 }
-
-# resource "aws_db_instance" "default" {
-#   allocated_storage    = 20
-#   storage_type         = "gp2"
-#   engine               = "mysql"
-#   engine_version       = "5.7"
-#   instance_class       = "db.t3.medium"
-#   name                 = "ebdb"
-#   username             = "foo"
-#   password             = "foobarbaz"
-#   parameter_group_name = "default.mysql5.7"
-# }
 
