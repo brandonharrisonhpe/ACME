@@ -1,0 +1,8 @@
+{
+  "mock": {
+    "tfrun": "mock-pass.sentinel"
+  },
+  "test": {
+    "main": true
+  }
+}
