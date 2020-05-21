@@ -5,3 +5,5 @@ policy "aws_us_and_eu_only" {
 policy "cost_policy {
     enforcement_level = "soft-mandatory"
 }
+
+

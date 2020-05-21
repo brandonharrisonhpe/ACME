@@ -37,7 +37,7 @@ resource "aws_key_pair" "aws_ssh_key" {
 
 resource "local_file" "private_key" {
     content     = tls_private_key.aws_ssh_key.private_key_pem
-    filename = "${path.module}/private.pem"
+    filename = "./private.pem"
 }
 
 resource "tls_self_signed_cert" "example" {
@@ -49,13 +49,18 @@ resource "tls_self_signed_cert" "example" {
     organization = "ACME Examples, Inc"
   }
 
-  validity_period_hours = 12
+  validity_period_hours = 24
 
   allowed_uses = [
     "key_encipherment",
     "digital_signature",
     "server_auth",
   ]
+}
+
+resource "local_file" "cert" {
+    content     = tls_self_signed_cert.example.cert_pem
+    filename = "./cert.pem"
 }
 
 resource "aws_acm_certificate" "cert" {
