@@ -1,10 +1,10 @@
 provider "aws" {
-  alias = "primary_region"
+  alias  = "primary_region"
   region = var.primary_region
 }
 
 provider "aws" {
-  alias = "replica_region"
+  alias  = "replica_region"
   region = var.replica_region
 }
 
@@ -15,12 +15,12 @@ locals {
 
 data "aws_availability_zones" "primary_azs" {
   provider = aws.primary_region
-  state = "available"
+  state    = "available"
 }
 
 data "aws_availability_zones" "replica_azs" {
   provider = aws.replica_region
-  state = "available"
+  state    = "available"
 }
 
 module "primary-vpc" {
@@ -29,9 +29,9 @@ module "primary-vpc" {
   name = "primary-vpc"
   cidr = local.primary_cidr_block
 
-  azs             = data.aws_availability_zones.primary_azs.names
+  azs = data.aws_availability_zones.primary_azs.names
 
-  public_subnets  = [for az in data.aws_availability_zones.primary_azs.names : cidrsubnet(local.primary_cidr_block, 8, index(data.aws_availability_zones.primary_azs.names, az))]
+  public_subnets = [for az in data.aws_availability_zones.primary_azs.names : cidrsubnet(local.primary_cidr_block, 8, index(data.aws_availability_zones.primary_azs.names, az))]
 
   providers = {
     aws = aws.primary_region
@@ -44,9 +44,9 @@ module "replica-vpc" {
   name = "replica-vpc"
   cidr = local.replica_cidr_block
 
-  azs             = data.aws_availability_zones.replica_azs.names
+  azs = data.aws_availability_zones.replica_azs.names
 
-  public_subnets  = [for az in data.aws_availability_zones.replica_azs.names : cidrsubnet(local.replica_cidr_block, 8, index(data.aws_availability_zones.replica_azs.names, az))]
+  public_subnets = [for az in data.aws_availability_zones.replica_azs.names : cidrsubnet(local.replica_cidr_block, 8, index(data.aws_availability_zones.replica_azs.names, az))]
 
   providers = {
     aws = aws.replica_region
@@ -54,11 +54,11 @@ module "replica-vpc" {
 }
 
 resource "aws_vpc_peering_connection" "peer" {
-  provider      = aws.primary_region
-  vpc_id        = module.primary-vpc.vpc_id
-  peer_vpc_id   = module.replica-vpc.vpc_id
-  peer_region   = var.replica_region
-  auto_accept   = false
+  provider    = aws.primary_region
+  vpc_id      = module.primary-vpc.vpc_id
+  peer_vpc_id = module.replica-vpc.vpc_id
+  peer_region = var.replica_region
+  auto_accept = false
 }
 
 # Accepter's side of the connection.
@@ -73,9 +73,9 @@ resource "aws_default_security_group" "primary-vpc" {
   vpc_id   = module.primary-vpc.vpc_id
 
   ingress {
-    protocol  = -1
-    from_port = 0
-    to_port   = 0
+    protocol    = -1
+    from_port   = 0
+    to_port     = 0
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -92,9 +92,9 @@ resource "aws_default_security_group" "replica-vpc" {
   vpc_id   = module.replica-vpc.vpc_id
 
   ingress {
-    protocol  = -1
-    from_port = 0
-    to_port   = 0
+    protocol    = -1
+    from_port   = 0
+    to_port     = 0
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -112,20 +112,20 @@ locals {
 }
 
 resource "aws_route" "primary-vpc" {
-  count = length(local.primary_routes)
-  provider                  = aws.primary_region
+  count    = length(local.primary_routes)
+  provider = aws.primary_region
 
-  route_table_id = element(element(local.primary_routes, count.index), 0)
-  destination_cidr_block = element(element(local.primary_routes, count.index), 1)
+  route_table_id            = element(element(local.primary_routes, count.index), 0)
+  destination_cidr_block    = element(element(local.primary_routes, count.index), 1)
   vpc_peering_connection_id = aws_vpc_peering_connection.peer.id
 }
 
 resource "aws_route" "replica-vpc" {
-  count = length(local.replica_routes)
-  provider                  = aws.replica_region
+  count    = length(local.replica_routes)
+  provider = aws.replica_region
 
-  route_table_id = element(element(local.replica_routes, count.index), 0)
-  destination_cidr_block = element(element(local.replica_routes, count.index), 1)
+  route_table_id            = element(element(local.replica_routes, count.index), 0)
+  destination_cidr_block    = element(element(local.replica_routes, count.index), 1)
   vpc_peering_connection_id = aws_vpc_peering_connection.peer.id
 }
 
